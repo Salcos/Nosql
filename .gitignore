@@ -1,0 +1,238 @@
+# -*- coding: utf-8 -*-
+"""
+Import de los datos
+mongoimport -d baratheon -c personajes --file personajes.json
+mongoimport -d baratheon -c casas --file casas.json
+mongoimport -d baratheon -c eventos --file eventos.json
+"""
+#	Importamos los drivers de mongodb y neo4j
+from pymongo import *
+from py2neo import *
+
+#	PROCESO DE EXTRACCION DE LOS DATOS DESDE MONGODB
+print "-"*17+" Extraccion desde MongoDB "+"-"*17
+
+#	Creamos una instancia para conexion
+print "Estableciendo instancia a MongoDB"
+cliente = MongoClient()
+print "Conectado a MongoDB"
+#	Nos conectamos con la base de datos de mongo
+print "Realizando conexion con base de datos Baratheon"
+db = cliente['baratheon']
+print "Conexion Realizada correctamente"
+#	Obtenemos las colecciones de documentos
+print "Obteniendo las colecciones de la base de datos"
+print "Tomando la coleccion Personajes"
+personajes = db['personajes']
+print "Tomando la coleccion Casas"
+casas = db['casas']
+print "Tomando la coleccion Eventos"
+eventos = db['eventos']
+print "Se han importado las colecciones correctamente"
+
+#	Realizamos el query para obtener en cursores 
+#	los documentos de cada coleccion
+print "Obteniendo los documentos de las colecciones"
+print "Buscando documentos de la coleccion Personajes"
+cursorPersonajes = personajes.find()
+print "Query OK"
+print "Buscando documentos de la coleccion Casas"
+cursorCasas = casas.find()
+print "Query OK"
+print "Buscando documentos de la coleccion Eventos"
+cursorEventos = eventos.find()
+print "Query OK"
+print 
+print "-"*60+"\n"
+
+#	PROCESO DE TRANSFORMACION DE LOS DATOS DE LA BD EN MONGO
+print "-"*13+" Transformacion de los documentos "+"-"*13
+
+
+#	Estructuras de datos para almacenar los querys para Neo4J
+#	para los personajes, las casas y los eventos
+print "Preparando espacio para consultas"
+querysPersonajes = []
+queysCasas= []
+querysEventos = []
+
+"""
+#	Estructuras de control para conocer los datos de un determinado 
+#	documento para cualquiera de las coleciones anteriores
+print "Creando estructuras control"
+inPersonajes = [False]*16
+inCasas = [False]*7
+inEventos = [False]*4
+#	Arreglo con los posibles claves que tendra un documento 
+#	de tipo Personaje
+keysPersonaje = ['id','nombre','apellido','sexo','vivo','fecha_nac',
+'fecha_def','id_familia','jefe_casa','id_padre','id_madre','conyugues',
+'hijos','id_asesino','asesinatos','eventos']
+#	Arreglo con los posibles claves que tendra un documento
+#	de tipo Casas
+keysCasas = ['id','nombre','jefe_casa','aliados','enemigos','vasallos_de',
+'territorios']
+#	Arreglo con los posibles claves que tendra un documento
+#	de tipo Eventos
+keysEventos =  ['id','nombre','fecha','descripcion']
+#	Arreglos en blanco para guardar para saber que clave tiene y cual no segun
+#	el orden que tienen desde el cursor para el caso de los personajes, casas 
+#	y eventos
+hasKeyPersonaje = []
+hasKeyCasas = []
+hasKeyEventos = []
+#	Realizamos la revision de cada atributo de los documentos en el 
+#	en los cursoras y llenando los datos si poseen la clave
+print "Llenando estructuras auxiliares"
+#	Para el caso de los documento de los personajes
+for i in cursorPersonajes:
+	k=0
+	for j in keysPersonaje:
+		inPersonajes[k] = i.has_key(j)
+		k=k+1
+	hasKeyPersonaje.append(inPersonajes)
+#	Para el caso de los documento de los casas
+for i in cursorCasas:
+	k=0
+	for j in keysCasas:
+		inCasas[k] = i.has_key(j)
+		k=k+1
+	hasKeyCasas.append(inCasas)
+#	Para el caso de los documento de eventos
+for i in cursorEventos:
+	k=0
+	for j in keysEventos:
+		inEventos[k] = i.has_key(j)
+		k=k+1
+	hasKeyEventos.append(inEventos)
+#cursorPersonajes = personajes.find() # WTF con el cursor anterior tuve que redefinir
+for i in hasKeyPersonaje:
+	for j in range(16):
+		if(i[j]):
+			print keysPersonaje[j]
+	print "-------"
+"""
+datosPersonajes = [] 
+datosCasas = []                 
+datosEventos = []
+
+for personaje in cursorPersonajes:
+	doc = []
+	if personaje.has_key('id')is True:
+		doc.append(int(personaje['id']))
+	if personaje.has_key('nombre') is True:
+		doc.append(personaje['nombre'].encode('utf8'))
+	if personaje.has_key('apellido') is True:
+		doc.append(personaje['apellido'].encode('utf8'))
+	if personaje.has_key('sexo')is True:
+		doc.append(personaje['sexo'].encode('utf8'))
+	if personaje.has_key('vivo')is True:
+		doc.append(personaje['vivo'])
+	if personaje.has_key('fecha_nac')is True:
+		doc.append(int(personaje['fecha_nac']))
+	if personaje.has_key('fecha_def')is True:
+		doc.append(int(personaje['fecha_def']))
+	if personaje.has_key('id_familia')is True:
+		doc.append(int(personaje['id_familia']))
+	if personaje.has_key('jefe_casa')is True:
+		doc.append(personaje['jefe_casa'])
+	if personaje.has_key('id_padre')is True:
+		doc.append(int(personaje['id_padre']))
+	if personaje.has_key('id_madre')is True:
+		doc.append(int(personaje['id_madre']))
+	if personaje.has_key('conyuges')is True:
+		conyuges=[]
+		for pareja in personaje['conyuges']:
+			ide=int(pareja['id'])
+			conyuges.append(ide)
+		doc.append(conyuges)
+	if personaje.has_key('hijos')is True:
+		hijos=[]
+		for hijo in personaje['hijos']:
+			ide=int(hijo['id'])
+			hijos.append(ide)
+		doc.append(hijos)
+	if personaje.has_key('id_asesino')is True:
+		doc.append(int(personaje['id_asesino']))
+	if personaje.has_key('asesinatos')is True:
+		victimas=[]
+		for victima in personaje['asesinatos']:
+			ide=int(victima['id'])
+			victimas.append(ide)
+		doc.append(victimas)
+	if personaje.has_key('eventos')is True:
+		eventos=[]
+		for evento in personaje['eventos']:
+			ide=int(evento['id'])
+			eventos.append(ide)
+		doc.append(eventos)
+	datosPersonajes.append(doc)
+	print doc 
+for casa in cursorCasas:
+	doc=[]
+	if casa.has_key('id')is True:
+		doc.append(int(casa['id']))
+	if casa.has_key('nombre') is True:
+		doc.append(casa['nombre'].encode('utf8'))
+	if casa.has_key('jefe_casa')is True:
+		jefes=[]
+		for jefe in casa['jefe_casa']:
+			ide=int(jefe['id'])
+			jefes.append(ide)
+		doc.append(jefes)
+	if casa.has_key('aliados')is True:
+		aliados=[]
+		for aliado in casa['aliados']:
+			ide=int(aliado['id'])
+			aliados.append(ide)
+		doc.append(aliados)
+	if casa.has_key('enemigos')is True:
+		enemigos=[]
+		for enemigo in casa['enemigos']:
+			ide=int(enemigo['id'])
+			enemigos.append(ide)
+		doc.append(enemigos)
+	if casa.has_key('vasallo_de')is True:
+		doc.append(int(casa['vasallo_de']))
+	if casa.has_key('territorio')is True:
+		territorios=[]
+		for tierra in casa['territorio']:
+			territorio=tierra.encode('utf8')
+			territorios.append(territorio)
+		doc.append(territorios)
+	print doc
+	datosCasas.append(doc)
+for evento in cursorEventos:
+	doc=[]
+	if evento.has_key('id')is True:
+		doc.append(int(evento['id']))
+	if evento.has_key('nombre')is True:
+		doc.append(evento['nombre'].encode('utf8'))
+	if evento.has_key('fecha')is True:
+		doc.append(int(evento['fecha']))
+	if evento.has_key('descripcion')is True:
+		doc.append(evento['descripcion'].encode('utf8'))
+	print doc
+	datosEventos.append(doc)
+
+print "-"*60+"\n"
+
+#	PROCESO DE CARGA DE LOS DATOS EN NEO4J
+print "-"*13+" Carga de los documentos en Neo4J "+"-"*13
+print "-"*60+"\n"
+
+
+print len(datosPersonajes)
+print len(datosCasas)
+print len(datosEventos)
+
+"""
+graph = Graph()
+alice = Node("Person", name="Alice")
+graph.create(alice)
+"""
+graph = Graph()
+for i in datosPersonajes:
+	ide = i[1]
+	person = Node("Personaje", name = ide)
+	graph.create(person)
